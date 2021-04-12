@@ -52713,7 +52713,7 @@ function (_super) {
         }
       }), new ol_interaction__WEBPACK_IMPORTED_MODULE_7__["MouseWheelZoom"]({
         condition: ol_events_condition__WEBPACK_IMPORTED_MODULE_8__["platformModifierKeyOnly"]
-      })]),
+      }), new ol_interaction__WEBPACK_IMPORTED_MODULE_7__["DragRotateAndZoom"]()]),
       layers: [carto],
       view: new ol__WEBPACK_IMPORTED_MODULE_3__["View"]({
         center: Object(ol_proj__WEBPACK_IMPORTED_MODULE_6__["fromLonLat"])([center_lon, center_lat]),

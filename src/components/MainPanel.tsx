@@ -6,7 +6,7 @@ import { Map, View } from 'ol';
 import XYZ from 'ol/source/XYZ';
 import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer';
 import { fromLonLat } from 'ol/proj';
-import { defaults, DragPan, MouseWheelZoom } from 'ol/interaction';
+import { defaults, DragPan, MouseWheelZoom, DragRotateAndZoom } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import Control from 'ol/control/Control';
 import nanoid from 'nanoid';
@@ -50,6 +50,7 @@ export class MainPanel extends PureComponent<Props, IState> {
         new MouseWheelZoom({
           condition: platformModifierKeyOnly,
         }),
+        new DragRotateAndZoom(),
       ]),
       layers: [carto],
       view: new View({
