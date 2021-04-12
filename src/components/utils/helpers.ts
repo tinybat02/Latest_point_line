@@ -3,7 +3,6 @@ import Point from 'ol/geom/Point';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import { Coordinate } from 'ol/coordinate';
-import { fromLonLat } from 'ol/proj';
 import LineString from 'ol/geom/LineString';
 import { Circle, Stroke, Style, Fill, RegularShape } from 'ol/style';
 
@@ -68,7 +67,7 @@ export const drawFeature = (routeData: Coordinate[], color: string) => {
   return lineFeature;
 };
 
-export const processData = (data: SingleData[], colors: { [key: string]: string }) => {
+export const processData = (data: SingleData[]) => {
   const perDeviceRoute: { [key: string]: [number, number][] } = {};
 
   data.map((datum) => {
@@ -79,12 +78,20 @@ export const processData = (data: SingleData[], colors: { [key: string]: string 
     }
   });
 
-  Object.keys(perDeviceRoute).map((hash_id) => {
-    if (!colors[hash_id]) colors[hash_id] = randomColor();
-  });
+  return perDeviceRoute;
+};
 
-  const dataPoints = Object.keys(perDeviceRoute).map((hash_id) => {
-    return createPoint(perDeviceRoute[hash_id][0], colors[hash_id]);
+export const produceLayer = (
+  perDevice: { [key: string]: [number, number][] },
+  hash_list: string[],
+  colors: { [key: string]: string }
+) => {
+  const filter_absent_hash = hash_list.filter((hash_id) => perDevice[hash_id]);
+
+  const dataPoints = filter_absent_hash.map((hash_id) => {
+    if (!colors[hash_id]) colors[hash_id] = randomColor();
+
+    return createPoint(perDevice[hash_id][0], colors[hash_id]);
   });
 
   const pointLayer = new VectorLayer({
@@ -94,8 +101,8 @@ export const processData = (data: SingleData[], colors: { [key: string]: string 
     zIndex: 2,
   });
 
-  const dataLines = Object.keys(perDeviceRoute).map((hash_id) => {
-    return drawFeature(perDeviceRoute[hash_id], colors[hash_id]);
+  const dataLines = filter_absent_hash.map((hash_id) => {
+    return drawFeature(perDevice[hash_id], colors[hash_id]);
   });
 
   const lineLayer = new VectorLayer({
@@ -106,17 +113,4 @@ export const processData = (data: SingleData[], colors: { [key: string]: string 
   });
 
   return { pointLayer, lineLayer, newcolors: colors };
-};
-
-export const processDataES = (data: SingleData[]) => {
-  const dataPoints = data.map((datum) => {
-    return new Feature({
-      geometry: new Point(fromLonLat([datum.longitude, datum.latitude])),
-    });
-  });
-
-  const vectorSource = new VectorSource({
-    features: dataPoints,
-  });
-  return vectorSource;
 };

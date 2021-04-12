@@ -9,8 +9,9 @@ import { fromLonLat } from 'ol/proj';
 import { defaults, DragPan, MouseWheelZoom, DragRotateAndZoom } from 'ol/interaction';
 import { platformModifierKeyOnly } from 'ol/events/condition';
 import Control from 'ol/control/Control';
+import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes';
 import nanoid from 'nanoid';
-import { processData } from './utils/helpers';
+import { processData, produceLayer } from './utils/helpers';
 import 'ol/ol.css';
 import '../style/MainPanel.css';
 
@@ -21,6 +22,8 @@ interface Buffer extends VectorData {
 
 interface IState {
   colors: { [key: string]: string };
+  perDevice: { [key: string]: [number, number][] };
+  hash_list: string[];
 }
 
 export class MainPanel extends PureComponent<Props, IState> {
@@ -32,9 +35,11 @@ export class MainPanel extends PureComponent<Props, IState> {
 
   state: IState = {
     colors: {},
+    perDevice: {},
+    hash_list: [],
   };
   componentDidMount() {
-    const { tile_url, zoom_level, showLastPoint, showLastLine, center_lon, center_lat } = this.props.options;
+    const { tile_url, zoom_level, showLastPoint, center_lon, center_lat } = this.props.options;
     const carto = new TileLayer({
       source: new XYZ({
         url: 'https://{1-4}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
@@ -85,32 +90,31 @@ export class MainPanel extends PureComponent<Props, IState> {
     if (this.props.data.series.length == 0) return;
 
     const { buffer } = this.props.data.series[0].fields[0].values as Buffer;
-    const { pointLayer, lineLayer, newcolors } = processData(buffer, {});
-    this.setState({ colors: newcolors });
-
-    this.pointLayer = pointLayer;
-    this.lineLayer = lineLayer;
-
-    if (showLastPoint) this.map.addLayer(this.pointLayer);
-
-    if (showLastLine) this.map.addLayer(this.lineLayer);
+    const perDeviceRoute = processData(buffer);
+    this.setState({ perDevice: perDeviceRoute });
   }
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.data.series[0] !== this.props.data.series[0]) {
       const { showLastPoint, showLastLine } = this.props.options;
-      const { colors } = this.state;
+      const { hash_list, colors } = this.state;
 
       this.map.removeLayer(this.pointLayer);
       this.map.removeLayer(this.lineLayer);
 
-      if (this.props.data.series.length == 0) return;
+      if (this.props.data.series.length == 0) {
+        this.setState({ perDevice: {}, hash_list: [], colors: {} });
+        return;
+      }
+
       const { buffer } = this.props.data.series[0].fields[0].values as Buffer;
-      const { pointLayer, lineLayer, newcolors } = processData(buffer, colors);
-      this.setState({ colors: newcolors });
+      const perDeviceRoute = processData(buffer);
+      const { pointLayer, lineLayer } = produceLayer(perDeviceRoute, hash_list, colors);
+      this.setState({ perDevice: perDeviceRoute });
 
       this.pointLayer = pointLayer;
       this.lineLayer = lineLayer;
+
       if (showLastPoint) this.map.addLayer(this.pointLayer);
 
       if (showLastLine) this.map.addLayer(this.lineLayer);
@@ -171,7 +175,36 @@ export class MainPanel extends PureComponent<Props, IState> {
     }
   };
 
+  handleChange = (selectOption: Array<{ label: string; value: string }>) => {
+    const { perDevice, colors } = this.state;
+    const { showLastPoint, showLastLine } = this.props.options;
+
+    this.map.removeLayer(this.pointLayer);
+    this.map.removeLayer(this.lineLayer);
+
+    const hash_list = selectOption.map((item) => item.value);
+    const { pointLayer, lineLayer, newcolors } = produceLayer(perDevice, hash_list, colors);
+
+    this.pointLayer = pointLayer;
+    this.lineLayer = lineLayer;
+
+    if (showLastPoint) this.map.addLayer(this.pointLayer);
+
+    if (showLastLine) this.map.addLayer(this.lineLayer);
+
+    this.setState((prevState) => ({ ...prevState, hash_list: hash_list, colors: newcolors }));
+  };
+
   render() {
-    return <div id={this.id} style={{ width: '100%', height: '100%' }}></div>;
+    const { perDevice } = this.state;
+    return (
+      <>
+        <ReactMultiSelectCheckboxes
+          options={Object.keys(perDevice).map((hash_id) => ({ label: hash_id, value: hash_id }))}
+          onChange={this.handleChange}
+        />
+        <div id={this.id} style={{ width: '100%', height: '100%' }}></div>
+      </>
+    );
   }
 }
