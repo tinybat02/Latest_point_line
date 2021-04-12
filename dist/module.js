@@ -88811,6 +88811,7 @@ var drawFeature = function drawFeature(routeData, color) {
       }),
       points: 3,
       radius: 8,
+      rotateWithView: true,
       rotation: -rotation,
       angle: Math.PI / 2
     })

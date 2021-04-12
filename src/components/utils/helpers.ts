@@ -59,6 +59,7 @@ export const drawFeature = (routeData: Coordinate[], color: string) => {
         fill: new Fill({ color: color }),
         points: 3,
         radius: 8,
+        rotateWithView: true,
         rotation: -rotation,
         angle: Math.PI / 2,
       }),
